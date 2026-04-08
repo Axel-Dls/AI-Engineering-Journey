@@ -26,7 +26,9 @@ categories_rules = {
 }
 
 def load_transactions(filepath) -> pd.DataFrame:
-    return pd.read_csv(filepath)
+    df = pd.read_csv(filepath)
+    df['date'] = pd.to_datetime(df['date'])
+    return df 
 
 def categorize_transaction(libelle: str) -> str:
     for key, val in categories_rules.items():
@@ -34,24 +36,36 @@ def categorize_transaction(libelle: str) -> str:
             return key
     return "Autre" 
 
-def create_barplot(mt_by_categ: pd.Series) -> None:
-    df_plot = mt_by_categ.reset_index()
-    couleurs = ["green" if x > 0 else "red" for x in mt_by_categ.values]
-    sns.barplot(data=df_plot, x="categorie", y="montant", hue="categorie", palette=couleurs, legend=False)
-    plt.title("Bilan financier annuel par catégorie")
+def create_barplot(serie: pd.Series, x_col: str, title: str, color=None) -> None:
+    df_plot = serie.reset_index()
+    sns.barplot(data=df_plot, x=x_col, y="montant", hue=x_col, palette=color, legend=False)
+    plt.title(title)
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
 
 def get_stats(df: pd.DataFrame) -> pd.Series:
     return df.groupby(["categorie"])["montant"].sum().sort_values(ascending=False)
 
-
+def get_monthly_stats(df: pd.DataFrame) -> pd.Series:
+    ordre_mois = ["January", "February", "March", "April", "May", "June", 
+              "July", "August", "September", "October", "November", "December"]
+    return df.groupby(df['mois'])["montant"].sum().reindex(ordre_mois)
 
 def main() -> None:
     filepath = BASE_DIR / "data" / "sample_transactions.csv"
+    
     df = load_transactions(filepath)
     df['categorie'] = df['libelle'].apply(categorize_transaction)
-    create_barplot(get_stats(df))
+    df['mois'] = df['date'].dt.month_name()
+    couleurs = ["green" if x > 0 else "red" for x in get_stats(df).values]
+    
+
+    plt.figure()
+    create_barplot(get_stats(df),"categorie", "Bilan financier annuelle par catégories", couleurs)
+
+    plt.figure()
+    create_barplot(get_monthly_stats(df),"mois", "Bilan financier par mois")
+
     plt.show()
 
 if __name__ == "__main__":
