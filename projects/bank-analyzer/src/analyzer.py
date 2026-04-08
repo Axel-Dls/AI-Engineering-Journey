@@ -5,7 +5,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 BASE_DIR = Path(__file__).parent.parent
-sample_transactions = pd.read_csv(BASE_DIR / "data" / "sample_transactions.csv")
 
 # La logique : si le libellé CONTIENT un de ces mots → cette catégorie
 categories_rules = {
@@ -26,16 +25,16 @@ categories_rules = {
     "Virements": ["VIREMENT"]
 }
 
+def load_transactions(filepath) -> pd.DataFrame:
+    return pd.read_csv(filepath)
+
 def categorize_transaction(libelle: str) -> str:
     for key, val in categories_rules.items():
         if any(categ in libelle for categ in val):
             return key
     return "Autre" 
 
-def add_categ(row):
-    return categorize_transaction(row['libelle'])
-
-def create_barplot(mt_by_categ):
+def create_barplot(mt_by_categ: pd.Series) -> None:
     df_plot = mt_by_categ.reset_index()
     couleurs = ["green" if x > 0 else "red" for x in mt_by_categ.values]
     sns.barplot(data=df_plot, x="categorie", y="montant", hue="categorie", palette=couleurs, legend=False)
@@ -43,9 +42,18 @@ def create_barplot(mt_by_categ):
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
 
-if __name__ == "__main__":
-    sample_transactions['categorie'] = sample_transactions.apply(add_categ, axis=1)
-    #print(sample_transactions[sample_transactions['categorie'] == "Autre"]["libelle"].unique())
-    mt_by_categ = sample_transactions.groupby(["categorie"])["montant"].sum().sort_values(ascending=False)
-    create_barplot(mt_by_categ)
+def get_stats(df: pd.DataFrame) -> pd.Series:
+    return df.groupby(["categorie"])["montant"].sum().sort_values(ascending=False)
+
+
+
+def main() -> None:
+    filepath = BASE_DIR / "data" / "sample_transactions.csv"
+    df = load_transactions(filepath)
+    df['categorie'] = df['libelle'].apply(categorize_transaction)
+    create_barplot(get_stats(df))
     plt.show()
+
+if __name__ == "__main__":
+    main()
+    
