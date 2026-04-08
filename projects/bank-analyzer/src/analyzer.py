@@ -39,6 +39,10 @@ if __name__ == "__main__":
     sample_transactions['categorie'] = sample_transactions.apply(add_categ, axis=1)
     #print(sample_transactions[sample_transactions['categorie'] == "Autre"]["libelle"].unique())
 
-    mt_by_categ = sample_transactions.groupby(["categorie"])["montant"].sum()
-    sns.barplot(mt_by_categ)
+    mt_by_categ = sample_transactions.groupby(["categorie"])["montant"].sum().sort_values(ascending=False)
+    couleurs = ["green" if x > 0 else "red" for x in mt_by_categ.values]
+    sns.barplot(mt_by_categ, palette=couleurs)
+    plt.title("Bilan financier annuel par catégorie")
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
     plt.show()
