@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 BASE_DIR = Path(__file__).parent.parent
 sample_transactions = pd.read_csv(BASE_DIR / "data" / "sample_transactions.csv")
@@ -35,4 +37,8 @@ def add_categ(row):
 
 if __name__ == "__main__":
     sample_transactions['categorie'] = sample_transactions.apply(add_categ, axis=1)
-    print(sample_transactions[sample_transactions['categorie'] == "Autre"]["libelle"].unique())
+    #print(sample_transactions[sample_transactions['categorie'] == "Autre"]["libelle"].unique())
+
+    mt_by_categ = sample_transactions.groupby(["categorie"])["montant"].sum()
+    sns.barplot(mt_by_categ)
+    plt.show()
