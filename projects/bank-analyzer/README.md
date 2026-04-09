@@ -2,49 +2,66 @@
 
 Projet personnel d'apprentissage développé avec l'aide de Claude (Anthropic).
 
-## Demo en ligne 🚀
-[Accéder à l'application](https://ai-engineering-journey-nh339jabwaxdty3ckkftf3.streamlit.app/)
+## Demo en ligne
+👉 [Accéder à l'application](https://ai-engineering-journey-nh339jabwaxdty3ckkftf3.streamlit.app/)
 
-## Description
+## C'est quoi ?
 
-Bank Analyzer est un outil d'analyse automatique des transactions bancaires d'un foyer. Il catégorise les dépenses et revenus, génère des visualisations et produit un rapport financier complet - le tout en Python, sans interface graphique complexe.
+Un outil qui analyse automatiquement les transactions bancaires d'un foyer. Il catégorise les dépenses et revenus, génère des graphiques et sort un rapport financier complet - le tout en Python avec une interface web.
 
-Ce projet est en constante évolution au fil de mon apprentissage de Python, Pandas, Seaborn et de l'IA.
+La catégorisation est assurée par un modèle de Machine Learning (TF-IDF + Régression Logistique) entraîné sur les données du foyer, avec un taux de précision de 97%.
 
-## Fonctionnalités
+Le projet évolue au fur et à mesure de mon apprentissage de Python, Pandas, Scikit-learn, Streamlit et de l'IA.
 
-- Chargement de relevés bancaires au format CSV
-- Catégorisation automatique des transactions par règles métier
-- Graphique des dépenses/revenus par catégorie (vert/rouge)
-- Graphique des dépenses par mois
-- Rapport financier : revenus, dépenses, taux d'épargne, top 5 des dépenses
+## Ce que ça fait
 
-## Technologies utilisées
+- Import d'un relevé bancaire CSV (ou utilisation des données de démo)
+- Validation et nettoyage automatique des données
+- Catégorisation des transactions par un modèle ML
+- Graphique des dépenses par catégorie avec code couleur vert/rouge
+- Graphique des dépenses par mois (en français)
+- Rapport financier : revenus, dépenses, taux d'épargne, top 5 des grosses dépenses
+
+## Stack technique
 
 - Python 3.12
-- Pandas - manipulation et analyse des données
+- Pandas - manipulation des données
 - Seaborn / Matplotlib - visualisations
-- Pathlib - gestion des chemins de fichiers
+- Scikit-learn - modèle ML (TF-IDF + LogisticRegression)
+- Streamlit - interface web
+- Babel - internationalisation (noms des mois en français)
+- Joblib - sauvegarde du modèle ML
+- Pytest - tests unitaires
 - uv - gestion des dépendances
 
 ## Installation
 
 ```bash
-# Cloner le repo
 git clone https://github.com/Axel-Dls/AI-Engineering-Journey.git
-cd AI-Engineering-Journey
-
-# Installer les dépendances
+cd AI-Engineering-Journey/projects/bank-analyzer
 uv install
 ```
 
-## Utilisation
+## Lancer l'application
 
 ```bash
-uv run python projects/bank-analyzer/src/analyzer.py
+uv run streamlit run app.py
 ```
 
-Le script attend un fichier CSV dans `projects/bank-analyzer/data/` avec les colonnes suivantes :
+## Entraîner le modèle ML
+
+```bash
+cd src
+uv run python train_model.py
+```
+
+## Lancer les tests
+
+```bash
+uv run pytest tests/
+```
+
+## Format CSV attendu
 
 ```
 date,montant,libelle
@@ -52,24 +69,30 @@ date,montant,libelle
 2024-01-02,-850.00,VIREMENT LOYER
 ```
 
-## Structure du projet
+## Structure
 
 ```
 bank-analyzer/
 ├── data/
-│   └── sample_transactions.csv   # Données de test
+│   └── sample_transactions.csv   # Données de démo
 ├── src/
-│   └── analyzer.py               # Script principal
+│   ├── analyzer.py               # Fonctions principales
+│   └── train_model.py            # Entraînement du modèle ML
+├── tests/
+│   ├── conftest.py               # Configuration pytest
+│   └── test_analyzer.py          # Tests unitaires
+├── app.py                        # Interface Streamlit
+├── model.joblib                  # Modèle ML sauvegardé
 └── README.md
 ```
 
-## Roadmap
+## Ce qui est prévu
 
 - [ ] Export du rapport en PDF
-- [ ] Interface web avec Streamlit
-- [ ] Catégorisation intelligente avec un LLM (GPT / Claude)
-- [ ] Support de plusieurs formats bancaires (OFX, QIF)
+- [ ] Catégorisation avec un LLM pour les transactions inconnues
+- [ ] Support d'autres formats bancaires (OFX, QIF)
+- [ ] Comparaison mois par mois
 
 ---
 
-*Projet en cours de développement - partie d'une transition vers un poste d'AI Engineer.*
+*Projet en cours, dans le cadre d'une transition vers un poste d'AI Engineer.*
