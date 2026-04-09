@@ -1,10 +1,11 @@
-import streamlit as st
-import matplotlib.pyplot as plt
-
 from pathlib import Path
+
+import joblib
+import matplotlib.pyplot as plt
+import streamlit as st
+
 from src.analyzer import (
     load_transactions,
-    categorize_transaction,
     get_stats,
     get_monthly_stats,
     get_financial_summary,
@@ -12,7 +13,7 @@ from src.analyzer import (
     get_month
 )
 
-st.title("Bank Analyzer 🏦")
+st.title("Bank Analyzer 🏦")z
 
 BASE_DIR = Path(__file__).parent
 filepath = BASE_DIR / "data" / "sample_transactions.csv"
@@ -23,7 +24,9 @@ if uploaded_file is not None:
 else:
     df = load_transactions(filepath)
 
-df['categorie'] = df['libelle'].apply(categorize_transaction)
+model = joblib.load(BASE_DIR / "model.joblib")
+df['categorie'] = model.predict(df['libelle'])
+
 couleurs = ["green" if x > 0 else "red" for x in get_stats(df).values]
 
 df['mois'], ordre_mois = get_month(df, "fr")

@@ -1,11 +1,15 @@
 from pathlib import Path
-from babel import Locale
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-BASE_DIR = Path(__file__).parent.parent
+from babel import Locale
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
 
 # La logique : si le libellé CONTIENT un de ces mots → cette catégorie
 categories_rules = {
@@ -25,6 +29,21 @@ categories_rules = {
     "Auto": ["REPARATION", "AUTO", "VOITURE", "CONTROLE TECHNIQUE"],
     "Virements": ["VIREMENT"]
 }
+
+def get_my_model(df: pd.DataFrame) -> Pipeline:
+    X = df['libelle']
+    y = df['categorie']
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    model = Pipeline([
+        ('tfidf', TfidfVectorizer()),
+        ('clf', LogisticRegression())
+    ])
+
+    model.fit(X_train, y_train)
+
+    return model
 
 def load_transactions(filepath) -> pd.DataFrame:
     df = pd.read_csv(filepath)
