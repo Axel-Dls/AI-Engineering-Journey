@@ -65,8 +65,6 @@ def load_transactions(filepath) -> pd.DataFrame:
     else:
         raise ValueError("Le CSV n'a pas le format souhaité.")
 
-
-
 def categorize_transaction(libelle: str) -> str:
     for key, val in categories_rules.items():
         if any(categ in libelle for categ in val):
