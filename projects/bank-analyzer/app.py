@@ -11,8 +11,10 @@ from src.analyzer import (
     get_financial_summary,
     create_barplot,
     get_month, 
-    get_llm_category
+    get_llm_categories_batch  
 )
+
+from src.pdf_report import generate_pdf_report
 
 st.title("Bank Analyzer 🏦")
 
@@ -33,7 +35,9 @@ df['categorie'] = model.predict(df['libelle'])
 
 # Pour les transactions catégorisées "Autre" par le modèle ML
 mask = df['categorie'] == "Autre"
-df.loc[mask, 'categorie'] = df.loc[mask, 'libelle'].apply(get_llm_category)
+libelles_autres = df.loc[mask, 'libelle'].tolist()
+if libelles_autres:
+    df.loc[mask, 'categorie'] = get_llm_categories_batch(libelles_autres)
 
 couleurs = ["green" if x > 0 else "red" for x in get_stats(df).values]
 
@@ -82,3 +86,11 @@ mois_selectionnes = st.multiselect(
 fig2, ax2 = plt.subplots()
 create_barplot(get_monthly_stats(df, mois_selectionnes), "mois", "Bilan financier par mois", ax=ax2)
 st.pyplot(fig2)
+
+pdf_bytes = generate_pdf_report(df)
+st.download_button(
+    label="📄 Télécharger le rapport PDF",
+    data=pdf_bytes,
+    file_name="rapport_financier.pdf",
+    mime="application/pdf"
+)

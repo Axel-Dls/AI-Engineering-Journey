@@ -110,20 +110,27 @@ def get_financial_summary(df: pd.DataFrame) -> dict:
         "top_categ_expense": top_categ_expense
     }
 
-def get_llm_category(libelle: str) -> str:
+def get_llm_categories_batch(libelles: list) -> list:
     load_dotenv()
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-
+    
     categories = list(categories_rules.keys())
+    
+    libelles_numerotes = "\n".join(
+        [f"{i+1}. {libelle}" for i, libelle in enumerate(libelles)]
+    )
+    
     prompt_text = (
         f"Tu es un assistant qui catégorise des transactions bancaires françaises. "
         f"Voici les catégories disponibles : {', '.join(categories)}. "
-        f"Dans quelle catégorie rentre la transaction '{libelle}' ? "
-        f"Réponds uniquement avec le nom exact de la catégorie, rien d'autre."
+        f"Pour chaque libellé numéroté, réponds uniquement avec le numéro et la catégorie exacte. "
+        f"Format attendu : '1. Catégorie'\n\n"
+        f"Libellés :\n{libelles_numerotes}"
     )
     
     response = client.models.generate_content(
         model="gemini-2.5-flash", contents=prompt_text
     )
-
-    return response.text
+    
+    raw = response.text
+    return [line.split(". ")[1] for line in raw.split('\n') if line.strip()]
