@@ -87,8 +87,8 @@ def create_barplot(serie: pd.Series, x_col: str, title: str, color=None, ax=None
 def get_stats(df: pd.DataFrame) -> pd.Series:
     return df.groupby(["categorie"])["montant"].sum().sort_values(ascending=False)
 
-def get_monthly_stats(df: pd.DataFrame, ordre_mois: list) -> pd.Series:
-    return df.groupby(df['mois'])["montant"].sum().reindex(ordre_mois)
+def get_monthly_stats(df: pd.DataFrame, mois_selectionnes: list) -> pd.Series:
+    return df.groupby(df['mois'])["montant"].sum().reindex(mois_selectionnes)
 
 def get_financial_summary(df: pd.DataFrame) -> dict:
     income = df[df['montant'] > 0]['montant'].sum()

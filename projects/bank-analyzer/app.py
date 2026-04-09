@@ -68,7 +68,14 @@ fig, ax = plt.subplots()
 create_barplot(get_stats(df), "categorie", "Bilan par catégorie", couleurs, ax=ax)
 st.pyplot(fig)
 
+
+
 st.header("📊 Bilan financier par mois")
+mois_selectionnes = st.multiselect(
+    "Sélectionne les mois à afficher",
+    options=ordre_mois,
+    default=ordre_mois  # tous sélectionnés par défaut
+)
 fig2, ax2 = plt.subplots()
-create_barplot(get_monthly_stats(df, ordre_mois), "mois", "Bilan financier par mois", ax=ax2)
+create_barplot(get_monthly_stats(df, mois_selectionnes), "mois", "Bilan financier par mois", ax=ax2)
 st.pyplot(fig2)
