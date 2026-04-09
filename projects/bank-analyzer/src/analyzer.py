@@ -72,26 +72,3 @@ def get_financial_summary(df: pd.DataFrame) -> dict:
         "average_monthly_spending": average_monthly_spending, 
         "top_categ_expense": top_categ_expense
     }
-
-'''
-def main() -> None:
-    filepath = BASE_DIR / "data" / "sample_transactions.csv"
-    df = load_transactions(filepath)
-    df['categorie'] = df['libelle'].apply(categorize_transaction)
-
-    
-    df['mois'], ordre_mois = get_month(df, "en")
-    
-    
-    plt.figure()
-    create_barplot(get_stats(df),"categorie", "Bilan financier annuelle par catégories", couleurs)
-    plt.figure()
-    create_barplot(get_monthly_stats(df),"mois", "Bilan financier par mois")
-    plt.show()
-    get_financial_summary(df)
-'''
-    
-'''
-if __name__ == "__main__":
-    main()
-'''
