@@ -10,7 +10,8 @@ from src.analyzer import (
     get_monthly_stats,
     get_financial_summary,
     create_barplot,
-    get_month
+    get_month, 
+    get_llm_category
 )
 
 st.title("Bank Analyzer 🏦")
@@ -29,6 +30,10 @@ except ValueError as e:
 
 model = joblib.load(BASE_DIR / "model.joblib")
 df['categorie'] = model.predict(df['libelle'])
+
+# Pour les transactions catégorisées "Autre" par le modèle ML
+mask = df['categorie'] == "Autre"
+df.loc[mask, 'categorie'] = df.loc[mask, 'libelle'].apply(get_llm_category)
 
 couleurs = ["green" if x > 0 else "red" for x in get_stats(df).values]
 
@@ -67,8 +72,6 @@ st.header("📊 Dépenses par catégorie")
 fig, ax = plt.subplots()
 create_barplot(get_stats(df), "categorie", "Bilan par catégorie", couleurs, ax=ax)
 st.pyplot(fig)
-
-
 
 st.header("📊 Bilan financier par mois")
 mois_selectionnes = st.multiselect(

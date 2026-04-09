@@ -1,8 +1,11 @@
 from pathlib import Path
+from dotenv import load_dotenv
 
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import os
+from google import genai
 
 from babel import Locale
 
@@ -106,3 +109,21 @@ def get_financial_summary(df: pd.DataFrame) -> dict:
         "average_monthly_spending": average_monthly_spending, 
         "top_categ_expense": top_categ_expense
     }
+
+def get_llm_category(libelle: str) -> str:
+    load_dotenv()
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
+    categories = list(categories_rules.keys())
+    prompt_text = (
+        f"Tu es un assistant qui catégorise des transactions bancaires françaises. "
+        f"Voici les catégories disponibles : {', '.join(categories)}. "
+        f"Dans quelle catégorie rentre la transaction '{libelle}' ? "
+        f"Réponds uniquement avec le nom exact de la catégorie, rien d'autre."
+    )
+    
+    response = client.models.generate_content(
+        model="gemini-2.5-flash", contents=prompt_text
+    )
+
+    return response.text
