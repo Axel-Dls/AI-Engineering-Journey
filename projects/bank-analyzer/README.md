@@ -2,6 +2,9 @@
 
 Projet personnel d'apprentissage développé avec l'aide de Claude (Anthropic).
 
+## Demo en ligne 🚀
+[Accéder à l'application](https://ai-engineering-journey-nh339jabwaxdty3ckkftf3.streamlit.app/)
+
 ## Description
 
 Bank Analyzer est un outil d'analyse automatique des transactions bancaires d'un foyer. Il catégorise les dépenses et revenus, génère des visualisations et produit un rapport financier complet - le tout en Python, sans interface graphique complexe.
