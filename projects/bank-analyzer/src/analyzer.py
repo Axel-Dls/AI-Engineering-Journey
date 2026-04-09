@@ -1,4 +1,5 @@
 from pathlib import Path
+from babel import Locale
 
 import pandas as pd
 import seaborn as sns
@@ -36,9 +37,15 @@ def categorize_transaction(libelle: str) -> str:
             return key
     return "Autre" 
 
-def create_barplot(serie: pd.Series, x_col: str, title: str, color=None) -> None:
+def get_month(df: pd.DataFrame, lang: str = "en") -> tuple[pd.Series, list]:
+    locale = Locale(lang)
+    months = locale.months['format']['wide']
+    ordre_mois = [months[i] for i in range(1, 13)]
+    return df['date'].dt.month.map(months), ordre_mois
+
+def create_barplot(serie: pd.Series, x_col: str, title: str, color=None, ax=None) -> None:
     df_plot = serie.reset_index()
-    sns.barplot(data=df_plot, x=x_col, y="montant", hue=x_col, palette=color, legend=False)
+    sns.barplot(data=df_plot, x=x_col, y="montant", hue=x_col, palette=color, legend=False, ax=ax)
     plt.title(title)
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
@@ -46,57 +53,45 @@ def create_barplot(serie: pd.Series, x_col: str, title: str, color=None) -> None
 def get_stats(df: pd.DataFrame) -> pd.Series:
     return df.groupby(["categorie"])["montant"].sum().sort_values(ascending=False)
 
-def get_monthly_stats(df: pd.DataFrame) -> pd.Series:
-    ordre_mois = ["January", "February", "March", "April", "May", "June", 
-              "July", "August", "September", "October", "November", "December"]
+def get_monthly_stats(df: pd.DataFrame, ordre_mois: list) -> pd.Series:
     return df.groupby(df['mois'])["montant"].sum().reindex(ordre_mois)
 
-def get_financial_summary(df: pd.DataFrame) -> None:
-    # Calcul des montants positifs
+def get_financial_summary(df: pd.DataFrame) -> dict:
     income = df[df['montant'] > 0]['montant'].sum()
-    # Calcul des montants négatifs
     expenses = df[df['montant'] < 0]['montant'].sum()
-    # Calcul du Taux d'épargne
     savings_rate = ((income + expenses) / income) * 100
-    # Top 5 - Plus grosses dépenses
     top_five_expenses = df[df['montant'] < 0][['libelle', 'montant']].sort_values(by='montant', ascending=True).head()
-    # Calcul de la dépense moyenne par mois
     average_monthly_spending = df.groupby(df['mois'])["montant"].sum().mean()
-    # Top 1 catégorie de dépense
     top_categ_expense = df.groupby(["categorie"])["montant"].sum().sort_values(ascending=True).head(1)
 
-    print("\n💰 BILAN FINANCIER ANNUEL")
-    print("─" * 35)
-    print(f"Revenus totaux       : {income:.2f} €")
-    print(f"Dépenses totales     : {expenses:.2f} €")
-    print(f"Taux d'épargne       : {savings_rate:.1f} %")
-    print(f"Dépense moyenne/mois : {average_monthly_spending:.2f} €")
-    print("\n📊 TOP 5 PLUS GROSSES DÉPENSES")
-    print("─" * 35)
-    for _, row in top_five_expenses.iterrows():
-        print(f"  {row['libelle']:<30} : {row['montant']:.2f} €")
-    print("\n🏆 CATÉGORIE LA PLUS DÉPENSIÈRE")
-    print("─" * 35)
-    for categ, montant in top_categ_expense.items():
-        print(f"  {categ:<30} : {montant:.2f} €")
+    return {
+        "income": income,
+        "expenses": expenses,
+        "savings_rate": savings_rate,
+        "top_five_expenses": top_five_expenses,
+        "average_monthly_spending": average_monthly_spending, 
+        "top_categ_expense": top_categ_expense
+    }
 
-
+'''
 def main() -> None:
     filepath = BASE_DIR / "data" / "sample_transactions.csv"
     df = load_transactions(filepath)
     df['categorie'] = df['libelle'].apply(categorize_transaction)
-    df['mois'] = df['date'].dt.month_name()
-    couleurs = ["green" if x > 0 else "red" for x in get_stats(df).values]
+
     
-    '''
+    df['mois'], ordre_mois = get_month(df, "en")
+    
+    
     plt.figure()
     create_barplot(get_stats(df),"categorie", "Bilan financier annuelle par catégories", couleurs)
     plt.figure()
     create_barplot(get_monthly_stats(df),"mois", "Bilan financier par mois")
     plt.show()
-    '''
     get_financial_summary(df)
-
+'''
+    
+'''
 if __name__ == "__main__":
     main()
-    
+'''
