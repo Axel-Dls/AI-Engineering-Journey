@@ -13,16 +13,19 @@ from src.analyzer import (
     get_month
 )
 
-st.title("Bank Analyzer 🏦")z
+st.title("Bank Analyzer 🏦")
 
 BASE_DIR = Path(__file__).parent
 filepath = BASE_DIR / "data" / "sample_transactions.csv"
 uploaded_file = st.file_uploader("Importe ton relevé bancaire 📂", type="csv")
-
-if uploaded_file is not None:
-    df = load_transactions(uploaded_file)
-else:
-    df = load_transactions(filepath)
+try:
+    if uploaded_file is not None:
+        df = load_transactions(uploaded_file)
+    else:
+        df = load_transactions(filepath)
+except ValueError as e:
+    st.error(f"Erreur : {e}")
+    st.stop()
 
 model = joblib.load(BASE_DIR / "model.joblib")
 df['categorie'] = model.predict(df['libelle'])

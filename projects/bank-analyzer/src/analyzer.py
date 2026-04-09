@@ -10,6 +10,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
+from pandas.api.types import is_numeric_dtype
 
 # La logique : si le libellé CONTIENT un de ces mots → cette catégorie
 categories_rules = {
@@ -45,10 +46,26 @@ def get_my_model(df: pd.DataFrame) -> Pipeline:
 
     return model
 
+def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
+    if df.isnull().values.any():
+        df['libelle'] = df['libelle'].fillna("INCONNU")
+        df = df.dropna(subset=['montant', 'date'])
+        return df
+    return df
+
 def load_transactions(filepath) -> pd.DataFrame:
     df = pd.read_csv(filepath)
-    df['date'] = pd.to_datetime(df['date'])
-    return df 
+    if df.columns.isin(['date', 'montant', 'libelle']).all():
+        df['date'] = pd.to_datetime(df['date'])
+        if is_numeric_dtype(df['montant']):
+            df = clean_transactions(df)
+            return df
+        else:
+            raise ValueError("Le format du montant n'est pas numérique")
+    else:
+        raise ValueError("Le CSV n'a pas le format souhaité.")
+
+
 
 def categorize_transaction(libelle: str) -> str:
     for key, val in categories_rules.items():
