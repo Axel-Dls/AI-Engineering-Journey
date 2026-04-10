@@ -16,14 +16,25 @@ from src.analyzer import (
 
 from src.pdf_report import generate_pdf_report
 
+from src.file_parser import parse_ofx, parse_qif
+
 st.title("Bank Analyzer 🏦")
 
 BASE_DIR = Path(__file__).parent
 filepath = BASE_DIR / "data" / "sample_transactions.csv"
-uploaded_file = st.file_uploader("Importe ton relevé bancaire 📂", type="csv")
+uploaded_file = st.file_uploader("Importe ton relevé bancaire 📂 (CSV, OFX, QIF)", type=None)
 try:
     if uploaded_file is not None:
-        df = load_transactions(uploaded_file)
+        suffix = Path(uploaded_file.name).suffix
+        if suffix == ".csv":
+            df = load_transactions(uploaded_file)
+        elif suffix == ".qif":
+            df = parse_qif(uploaded_file)
+        elif suffix == ".ofx":
+            df = parse_ofx(uploaded_file)
+        else:
+            st.error(f"Erreur : Format de fichier non supporté.")
+            st.stop()
     else:
         df = load_transactions(filepath)
 except ValueError as e:

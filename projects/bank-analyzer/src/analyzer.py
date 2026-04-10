@@ -49,24 +49,27 @@ def get_my_model(df: pd.DataFrame) -> Pipeline:
 
     return model
 
-def clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
+def validate_and_clean_transactions(df: pd.DataFrame) -> pd.DataFrame:
+    if not df.columns.isin(['date', 'montant', 'libelle']).all():
+        raise ValueError("Le CSV n'a pas le format souhaité.")
+
+    df['montant'] = pd.to_numeric(df['montant'], errors='raise')
+    if not is_numeric_dtype(df['montant']):
+        raise ValueError("Le format du montant n'est pas numérique")
+    
     if df.isnull().values.any():
         df['libelle'] = df['libelle'].fillna("INCONNU")
         df = df.dropna(subset=['montant', 'date'])
-        return df
+    
+    df['date'] = pd.to_datetime(df['date'])
+
     return df
 
 def load_transactions(filepath) -> pd.DataFrame:
     df = pd.read_csv(filepath)
-    if df.columns.isin(['date', 'montant', 'libelle']).all():
-        df['date'] = pd.to_datetime(df['date'])
-        if is_numeric_dtype(df['montant']):
-            df = clean_transactions(df)
-            return df
-        else:
-            raise ValueError("Le format du montant n'est pas numérique")
-    else:
-        raise ValueError("Le CSV n'a pas le format souhaité.")
+    df = validate_and_clean_transactions(df)
+    return df
+        
 
 def categorize_transaction(libelle: str) -> str:
     for key, val in categories_rules.items():
@@ -128,9 +131,12 @@ def get_llm_categories_batch(libelles: list) -> list:
         f"Libellés :\n{libelles_numerotes}"
     )
     
-    response = client.models.generate_content(
-        model="gemini-2.5-flash", contents=prompt_text
-    )
-    
-    raw = response.text
-    return [line.split(". ")[1] for line in raw.split('\n') if line.strip()]
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash", contents=prompt_text
+        )
+        
+        raw = response.text
+        return [line.split(". ")[1] for line in raw.split('\n') if line.strip()]
+    except Exception:
+        return ["Autre"]*len(libelles)
