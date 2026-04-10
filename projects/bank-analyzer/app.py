@@ -31,26 +31,6 @@ st.title("Bank Analyzer 🏦")
 BASE_DIR = Path(__file__).parent
 filepath = BASE_DIR / "data" / "sample_transactions.csv"
 
-# Chargement du fichier importé par l'utilisateur ou du fichier de démo par défaut
-uploaded_file = st.file_uploader("Importe ton relevé bancaire 📂 (CSV, OFX, QIF)", type=None)
-try:
-    if uploaded_file is not None:
-        suffix = Path(uploaded_file.name).suffix
-        if suffix == ".csv":
-            df = load_transactions(uploaded_file)
-        elif suffix == ".qif":
-            df = parse_qif(uploaded_file)
-        elif suffix == ".ofx":
-            df = parse_ofx(uploaded_file)
-        else:
-            st.error(f"Erreur : Format de fichier non supporté.")
-            st.stop()
-    else:
-        df = load_transactions(filepath)
-except ValueError as e:
-    st.error(f"Erreur : {e}")
-    st.stop()
-
 
 @st.cache_resource
 def load_model():
@@ -60,22 +40,63 @@ def load_model():
 
 model = load_model()
 
-# Prédiction de la catégorie pour chaque transaction via le modèle ML
-df['categorie'] = model.predict(df['libelle'])
+# Chargement du fichier importé par l'utilisateur ou du fichier de démo par défaut
+uploaded_file = st.file_uploader("Importe ton relevé bancaire 📂 (CSV, OFX, QIF)", type=None)
 
-# Pour les transactions catégorisées "Autre" par le modèle ML, on sollicite le LLM
-mask = df['categorie'] == "Autre"
-libelles_autres = df.loc[mask, 'libelle'].tolist()
-if libelles_autres:
-    df.loc[mask, 'categorie'] = get_llm_categories_batch(libelles_autres)
+# Identifiant unique du fichier : file_id si uploadé, "demo" sinon
+fichier_id = uploaded_file.file_id if uploaded_file is not None else "demo"
 
-# Calcul des stats une seule fois pour éviter un double groupby
-stats = get_stats(df)
+# On ne recalcule que si le fichier a changé depuis le dernier rerun
+if st.session_state.get("fichier_id") != fichier_id:
+
+    try:
+        if uploaded_file is not None:
+            suffix = Path(uploaded_file.name).suffix
+            if suffix == ".csv":
+                df = load_transactions(uploaded_file)
+            elif suffix == ".qif":
+                df = parse_qif(uploaded_file)
+            elif suffix == ".ofx":
+                df = parse_ofx(uploaded_file)
+            else:
+                st.error("Erreur : Format de fichier non supporté.")
+                st.stop()
+        else:
+            df = load_transactions(filepath)
+
+    except ValueError as e:
+        st.error(f"Erreur : {e}")
+        st.stop()
+
+    # Prédiction ML pour toutes les transactions
+    df['categorie'] = model.predict(df['libelle'])
+
+    # Appel Gemini uniquement pour les transactions catégorisées "Autre" par le modèle ML
+    mask = df['categorie'] == "Autre"
+    libelles_autres = df.loc[mask, 'libelle'].tolist()
+    if libelles_autres:
+        df.loc[mask, 'categorie'] = get_llm_categories_batch(libelles_autres)
+
+    # Calcul des stats une seule fois pour éviter un double groupby
+    df['mois'], ordre_mois = get_month(df, LOCALE)
+    stats = get_stats(df)
+    summary = get_financial_summary(df)
+
+    # Persistance de toutes les données dans le session_state
+    st.session_state.fichier_id = fichier_id
+    st.session_state.df = df
+    st.session_state.stats = stats
+    st.session_state.summary = summary
+    st.session_state.ordre_mois = ordre_mois
+
+# Récupération des données depuis le session_state (sans recalcul)
+df = st.session_state.df
+stats = st.session_state.stats
+summary = st.session_state.summary
+ordre_mois = st.session_state.ordre_mois
+
+# Couleurs selon le signe du montant (vert = positif, rouge = négatif)
 couleurs = ["green" if x > 0 else "red" for x in stats.values]
-
-df['mois'], ordre_mois = get_month(df, LOCALE)
-
-summary = get_financial_summary(df)
 
 st.header("📊 Bilan financier")
 col1, col2, col3 = st.columns(3)
@@ -108,6 +129,7 @@ st.header("📊 Dépenses par catégorie")
 fig, ax = plt.subplots()
 create_barplot(stats, "categorie", "Bilan par catégorie", couleurs, ax=ax)
 st.pyplot(fig)
+plt.close(fig)
 
 st.header("📊 Bilan financier par mois")
 mois_selectionnes = st.multiselect(
@@ -118,6 +140,7 @@ mois_selectionnes = st.multiselect(
 fig2, ax2 = plt.subplots()
 create_barplot(get_monthly_stats(df, mois_selectionnes), "mois", "Bilan financier par mois", ax=ax2)
 st.pyplot(fig2)
+plt.close(fig2)
 
 # Génération du rapport PDF avec le résumé déjà calculé (pas de double appel)
 pdf_bytes = generate_pdf_report(df, summary)
