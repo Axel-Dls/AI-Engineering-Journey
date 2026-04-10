@@ -1,16 +1,21 @@
+# Stdlib
 from io import BytesIO
 
+# Third-party
 import matplotlib.pyplot as plt
+import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-import pandas as pd
-from src.analyzer import get_financial_summary, get_stats, get_monthly_stats, create_barplot
+# Local
+from src.analyzer import create_barplot, get_monthly_stats, get_stats
 
-def generate_pdf_report(df: pd.DataFrame) -> bytes:
+
+def generate_pdf_report(df: pd.DataFrame, summary: dict) -> bytes:
+    # Génération du rapport PDF en mémoire (pas d'écriture sur disque)
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
     styles = getSampleStyleSheet()
@@ -20,15 +25,14 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
     story.append(Paragraph("Rapport Financier", styles['Title']))
     story.append(Spacer(1, 0.5 * cm))
 
-    # Métriques
-    summary = get_financial_summary(df)
+    # Métriques principales issues du résumé déjà calculé dans app.py
     story.append(Paragraph("Bilan financier", styles['Heading1']))
     metrics = [
         ["Revenus totaux", f"{summary['income']:.0f} €"],
         ["Dépenses totales", f"{summary['expenses']:.0f} €"],
         ["Taux d'épargne", f"{summary['savings_rate']:.1f} %"],
     ]
-    table = Table(metrics, colWidths=[8*cm, 6*cm])
+    table = Table(metrics, colWidths=[8 * cm, 6 * cm])
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, -1), colors.whitesmoke),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
@@ -46,7 +50,7 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
         [row['libelle'], f"{row['montant']:.2f} €"]
         for _, row in top5.iterrows()
     ]
-    table_top5 = Table(top5_data, colWidths=[11*cm, 4*cm])
+    table_top5 = Table(top5_data, colWidths=[11 * cm, 4 * cm])
     table_top5.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -60,13 +64,13 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
     story.append(table_top5)
     story.append(Spacer(1, 0.5 * cm))
 
-    # Montant par catégorie avec couleurs
+    # Tableau des montants par catégorie avec coloration verte/rouge selon le signe
     story.append(Paragraph("Montant par catégorie", styles['Heading1']))
     stats = get_stats(df)
     cat_data = [["Catégorie", "Montant"]]
     for categorie, montant in stats.items():
         cat_data.append([categorie, f"{montant:.2f} €"])
-    table_cat = Table(cat_data, colWidths=[9*cm, 5*cm])
+    table_cat = Table(cat_data, colWidths=[9 * cm, 5 * cm])
     style_cmds = [
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2c3e50')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
@@ -83,10 +87,10 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
     story.append(table_cat)
     story.append(Spacer(1, 0.5 * cm))
 
-    # Graphiques
+    # Graphiques générés en mémoire et insérés directement dans le PDF
     story.append(Paragraph("Graphiques", styles['Heading1']))
     for title, serie, x_col in [
-        ("Dépenses par catégorie", get_stats(df), "categorie"),
+        ("Dépenses par catégorie", stats, "categorie"),
         ("Bilan par mois", get_monthly_stats(df, list(df['mois'].unique())), "mois"),
     ]:
         fig, ax = plt.subplots(figsize=(10, 4))
@@ -96,7 +100,7 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
         fig.savefig(img_buffer, format='png', bbox_inches='tight')
         plt.close(fig)
         img_buffer.seek(0)
-        story.append(Image(img_buffer, width=16*cm, height=7*cm))
+        story.append(Image(img_buffer, width=16 * cm, height=7 * cm))
         story.append(Spacer(1, 0.3 * cm))
 
     doc.build(story)

@@ -1,27 +1,37 @@
+# Stdlib
 from pathlib import Path
 
+# Third-party
 import joblib
 import matplotlib.pyplot as plt
 import streamlit as st
+from dotenv import load_dotenv
 
+# Local
 from src.analyzer import (
-    load_transactions,
-    get_stats,
-    get_monthly_stats,
-    get_financial_summary,
     create_barplot,
-    get_month, 
-    get_llm_categories_batch  
+    get_financial_summary,
+    get_llm_categories_batch,
+    get_month,
+    get_monthly_stats,
+    get_stats,
+    load_transactions,
 )
-
+from src.file_parser import parse_ofx, parse_qif
 from src.pdf_report import generate_pdf_report
 
-from src.file_parser import parse_ofx, parse_qif
+# Chargement des variables d'environnement (clé API Gemini, etc.)
+load_dotenv()
+
+# Locale utilisée pour l'affichage des noms de mois
+LOCALE = "fr"
 
 st.title("Bank Analyzer 🏦")
 
 BASE_DIR = Path(__file__).parent
 filepath = BASE_DIR / "data" / "sample_transactions.csv"
+
+# Chargement du fichier importé par l'utilisateur ou du fichier de démo par défaut
 uploaded_file = st.file_uploader("Importe ton relevé bancaire 📂 (CSV, OFX, QIF)", type=None)
 try:
     if uploaded_file is not None:
@@ -41,18 +51,29 @@ except ValueError as e:
     st.error(f"Erreur : {e}")
     st.stop()
 
-model = joblib.load(BASE_DIR / "model.joblib")
+
+@st.cache_resource
+def load_model():
+    # Mise en cache du modèle ML pour éviter de le recharger à chaque interaction Streamlit
+    return joblib.load(BASE_DIR / "model.joblib")
+
+
+model = load_model()
+
+# Prédiction de la catégorie pour chaque transaction via le modèle ML
 df['categorie'] = model.predict(df['libelle'])
 
-# Pour les transactions catégorisées "Autre" par le modèle ML
+# Pour les transactions catégorisées "Autre" par le modèle ML, on sollicite le LLM
 mask = df['categorie'] == "Autre"
 libelles_autres = df.loc[mask, 'libelle'].tolist()
 if libelles_autres:
     df.loc[mask, 'categorie'] = get_llm_categories_batch(libelles_autres)
 
-couleurs = ["green" if x > 0 else "red" for x in get_stats(df).values]
+# Calcul des stats une seule fois pour éviter un double groupby
+stats = get_stats(df)
+couleurs = ["green" if x > 0 else "red" for x in stats.values]
 
-df['mois'], ordre_mois = get_month(df, "fr")
+df['mois'], ordre_mois = get_month(df, LOCALE)
 
 summary = get_financial_summary(df)
 
@@ -85,7 +106,7 @@ st.dataframe(
 
 st.header("📊 Dépenses par catégorie")
 fig, ax = plt.subplots()
-create_barplot(get_stats(df), "categorie", "Bilan par catégorie", couleurs, ax=ax)
+create_barplot(stats, "categorie", "Bilan par catégorie", couleurs, ax=ax)
 st.pyplot(fig)
 
 st.header("📊 Bilan financier par mois")
@@ -98,7 +119,8 @@ fig2, ax2 = plt.subplots()
 create_barplot(get_monthly_stats(df, mois_selectionnes), "mois", "Bilan financier par mois", ax=ax2)
 st.pyplot(fig2)
 
-pdf_bytes = generate_pdf_report(df)
+# Génération du rapport PDF avec le résumé déjà calculé (pas de double appel)
+pdf_bytes = generate_pdf_report(df, summary)
 st.download_button(
     label="📄 Télécharger le rapport PDF",
     data=pdf_bytes,
