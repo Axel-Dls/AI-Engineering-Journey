@@ -1,6 +1,7 @@
 import pandas as pd
 import requests
 from datetime import datetime
+from urllib.parse import quote
 
 
 def resolve_game_candidates(search_txt: str):
@@ -68,12 +69,27 @@ def create_score_precision(row, game_early_access:bool = False):
 
 def get_game_informations(game):
 
-    url= f"https://store.steampowered.com/appreviews/{game['id']}?json=1&num_per_page=100&language=all&filter=all"
-    response = requests.get(url)
-    response.raise_for_status()
-    data = response.json()
+    cursor = "*"
+    data = []
+    
+    while True:
+        cursor = quote(cursor)
+        url= f"https://store.steampowered.com/appreviews/{game['id']}?json=1&num_per_page=100&language=all&filter=all&cursor={cursor}"
+        response = requests.get(url)
+        response.raise_for_status()
+        response_json = response.json()
+        
+        if 'reviews' not in response_json:
+            break
+        print(len(response_json['reviews']))
+        data.extend(response_json['reviews'])
+        print(f"Total reviews: {len(data)}")
+        if len(response_json['reviews']) < 100:
+            break
 
-    df = pd.DataFrame(data['reviews'])
+        cursor = response_json['cursor']
+
+    df = pd.DataFrame(data)
 
     df['weighted_vote_score'] = df['weighted_vote_score'].astype("float")
     df['playtime_at_review'] = df['author'].apply(lambda x: x['playtime_at_review'])

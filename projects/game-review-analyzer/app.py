@@ -43,5 +43,6 @@ if st.session_state['selected_game'] is not None and not st.session_state['game_
 
 if st.session_state['game_confirmed']:
     st.header(f"Nous avons notre gagnant:{st.session_state['selected_game']['name']}")
-    df = get_game_informations(st.session_state['selected_game'])
+    with st.spinner("Chargement des reviews..."):
+        df = get_game_informations(st.session_state['selected_game'])
     st.dataframe(df)
