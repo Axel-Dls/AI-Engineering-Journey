@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.analyzer import resolve_game_candidates, select_game
+from src.analyzer import resolve_game_candidates, get_game_informations
 
 st.title("Game Review Analyzer")
 
@@ -38,7 +38,10 @@ if st.session_state['selected_game'] is not None and not st.session_state['game_
         with right:
             if st.button("Valider", use_container_width=True):
                 st.session_state['game_confirmed'] = True
-                st.session_state['selected_game'] = select_game(option)
+                st.session_state['selected_game'] = option
                 st.rerun()
 
-    st.header("Nous avons notre gagnant:", st.session_state['selected_game']['name'])
+if st.session_state['game_confirmed']:
+    st.header(f"Nous avons notre gagnant:{st.session_state['selected_game']['name']}")
+    df = get_game_informations(st.session_state['selected_game'])
+    st.dataframe(df)
