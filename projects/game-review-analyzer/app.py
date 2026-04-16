@@ -1,6 +1,6 @@
 import streamlit as st
 
-from src.analyzer import resolve_game_candidates, get_game_informations
+from src.analyzer import resolve_game_candidates, get_game_informations, preprocess_text, get_sentiment, get_clusters, get_top_words_per_cluster
 
 st.title("Game Review Analyzer")
 
@@ -55,6 +55,10 @@ if st.session_state['game_confirmed']:
     df['text'] = df['text'].apply(preprocess_text)
     df['sentiment'] = df['text'].apply(get_sentiment)
 
-    st.dataframe(df)
+    labels, vectorizer, kmeans = get_clusters(df['text'])
+    df['cluster'] = labels
+
+    test = get_top_words_per_cluster(vectorizer, kmeans)
+
 
    

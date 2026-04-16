@@ -2,6 +2,8 @@ import pandas as pd
 import requests
 import nltk
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.cluster import KMeans
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -118,7 +120,7 @@ analyzer = SentimentIntensityAnalyzer()
 def preprocess_text(text):
     tokens = word_tokenize(text.lower())
 
-    filtered_tokens = [token for token in token if token not in stopwords.words('english')]
+    filtered_tokens = [token for token in tokens if token not in stopwords.words('english')]
 
     lemmatizer = WordNetLemmatizer()
     lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
@@ -131,3 +133,22 @@ def get_sentiment(text):
     scores = analyzer.polarity_scores(text)
     sentiment = 1 if scores['pos'] > 0 else 0
     return sentiment
+
+def get_clusters(text):
+    vectorizer = TfidfVectorizer(max_features=500)
+    X = vectorizer.fit_transform(text)
+    vectorizer.get_feature_names_out()
+    kmeans = KMeans(n_clusters=8, random_state=0, n_init="auto").fit(X)
+    return kmeans.labels_, vectorizer, kmeans
+
+def get_top_words_per_cluster(vectorizer, kmeans, n_words=10):
+    feature_names = vectorizer.get_feature_names_out()
+    clusters = {}
+    
+    for i in range(kmeans.n_clusters):
+        # récupère les indices des n_words plus grands scores du cluster i
+        top_indices = kmeans.cluster_centers_[i].argsort()[-n_words:]
+        # utilise ces indices pour récupérer les mots correspondants
+        clusters[i] = feature_names[top_indices]
+    
+    return clusters
