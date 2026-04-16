@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "nltk>=3.9.4",
+    "plotly>=6.7.0",
     "requests>=2.33.1",
     "scikit-learn>=1.8.0",
     "streamlit>=1.56.0",
