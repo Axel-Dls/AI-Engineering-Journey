@@ -42,7 +42,19 @@ if st.session_state['selected_game'] is not None and not st.session_state['game_
                 st.rerun()
 
 if st.session_state['game_confirmed']:
-    st.header(f"Nous avons notre gagnant:{st.session_state['selected_game']['name']}")
     with st.spinner("Chargement des reviews..."):
         df = get_game_informations(st.session_state['selected_game'])
+    st.write(f"{len(df)} reviews ont été récupérées.")
+
+    if len(df) < 500:
+        st.write("⚠️ Il peut y avoir un problème de pertinence dû au manque de reviews.")
+    
+    df_pos = df[df['voted_up']]
+    df_neg = df[df['voted_up'] == False]
+
+    df['text'] = df['text'].apply(preprocess_text)
+    df['sentiment'] = df['text'].apply(get_sentiment)
+
     st.dataframe(df)
+
+   

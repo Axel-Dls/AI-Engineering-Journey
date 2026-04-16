@@ -1,8 +1,19 @@
 import pandas as pd
 import requests
+import nltk
+
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
 from datetime import datetime
 from urllib.parse import quote
 
+nltk.download('vader_lexicon')
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+nltk.download('punkt_tab')
 
 def resolve_game_candidates(search_txt: str):
     if search_txt == '':
@@ -74,7 +85,7 @@ def get_game_informations(game):
     
     while True:
         cursor = quote(cursor)
-        url= f"https://store.steampowered.com/appreviews/{game['id']}?json=1&num_per_page=100&language=all&filter=all&cursor={cursor}"
+        url= f"https://store.steampowered.com/appreviews/{game['id']}?json=1&num_per_page=100&language=english&filter=all&cursor={cursor}"
         response = requests.get(url)
         response.raise_for_status()
         response_json = response.json()
@@ -95,9 +106,28 @@ def get_game_informations(game):
     df['playtime_at_review'] = df['author'].apply(lambda x: x['playtime_at_review'])
     df['recommendationid'] = df['recommendationid'].astype("int")
     df['date'] = df.apply(lambda x: pd.to_datetime(max(x['timestamp_created'], x['timestamp_updated']), unit='s'), axis=1)
-    df = df.drop(['voted_up', 'votes_funny', 'comment_count', 'received_for_free', 'refunded', 'primarily_steam_deck', 'app_release_date', 'reactions', 'hardware', 'steam_purchase', 'author', 'timestamp_created', 'timestamp_updated'], axis=1)
+    df = df.drop(['votes_funny', 'comment_count', 'received_for_free', 'refunded', 'primarily_steam_deck', 'app_release_date', 'reactions', 'hardware', 'steam_purchase', 'author', 'timestamp_created', 'timestamp_updated'], axis=1)
     df = df.rename(columns={'recommendationid': 'id', 'review': 'text'})
 
     df = df.apply(create_score_precision, axis=1, args=(False,))
 
     return df
+
+analyzer = SentimentIntensityAnalyzer()
+
+def preprocess_text(text):
+    tokens = word_tokenize(text.lower())
+
+    filtered_tokens = [token for token in token if token not in stopwords.words('english')]
+
+    lemmatizer = WordNetLemmatizer()
+    lemmatized_tokens = [lemmatizer.lemmatize(token) for token in filtered_tokens]
+
+    processed_text = ' '.join(lemmatized_tokens)
+
+    return processed_text
+
+def get_sentiment(text):
+    scores = analyzer.polarity_scores(text)
+    sentiment = 1 if scores['pos'] > 0 else 0
+    return sentiment
